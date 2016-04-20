@@ -18,7 +18,6 @@ module MiniDzt
     # @option size Size, in pixels, for tile squares (default: 512)
     # @option overlap Size, in pixels, of the overlap between tiles (default: 2)
     # @option overwrite Whether or not to overwrite if the destination exists (default: false)
-    # @option storage Either an instance of S3Storage or FileStorage
     def initialize(options)
       fail 'Missing options[:source].' unless options[:source]
 
@@ -28,13 +27,12 @@ module MiniDzt
       @tile_format  = options[:format] || DEFAULT_TILE_FORMAT
       @tile_quality = options[:quality] || DEFAULT_QUALITY
       @overwrite    = options[:overwrite] || DEFAULT_OVERWRITE_FLAG
-      @storage      = options[:storage]
 
       @max_tiled_height = @tile_source.height
       @max_tiled_width = @tile_source.width
     end
 
-    def slice!
+    def slice!(output_dir)
       @tmp_working_dir = Pathname(@tile_source.path).dirname + "mini_dzt_#{SecureRandom.hex}"
       FileUtils.mkdir_p @tmp_working_dir
 
@@ -56,6 +54,8 @@ module MiniDzt
 
         @tile_source.resize("50%")
       end
+
+      FileUtils.mv @tmp_working_dir, output_dir
     end
 
     private

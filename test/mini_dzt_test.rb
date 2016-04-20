@@ -3,6 +3,7 @@ require 'test_helper'
 class MiniDztTest < Minitest::Test
   def setup
     @sample_img1 = File.join File.expand_path('../fixtures', __FILE__), "img1.jpg"
+    @output_dir = File.expand_path('../tmp', __FILE__)
   end
 
   def test_main
@@ -12,8 +13,9 @@ class MiniDztTest < Minitest::Test
     max_level = tiler.send(:max_level, image.width, image.height)
     manuscripts = tiler.send(:get_manuscripts, image.width, image.height, "/test")
 
-    assert_equal 13, max_level
+    tiler.slice!(@output_dir)
 
+    assert_equal 13, max_level
     assert_equal(
       [
         ["/test/0_0.jpg", "512x512+0+0"],
@@ -54,7 +56,8 @@ class MiniDztTest < Minitest::Test
         ["/test/8_3.jpg", "512x512+1536+4096"]
       ], manuscripts
     )
-
-    # tiler.slice!
+    assert_equal 14, Dir.glob(@output_dir + "/*").count
+    assert_equal 61, Dir.glob(@output_dir + "/*/**").count
+    FileUtils.rm_rf(@output_dir)
   end
 end
