@@ -4,9 +4,19 @@ class MiniDztTest < Minitest::Test
   def setup
     @sample_img1 = File.join File.expand_path('../fixtures', __FILE__), "img1.jpg"
     @output_dir = File.expand_path('../tmp', __FILE__)
+
+    @binary = File.expand_path(File.join(__FILE__, '../exe/mini_dzt'))
   end
 
-  def test_main
+  def test_exec
+    `#{@binary} #{@sample_img1} #{@output_dir}`
+    assert_equal 14, Dir.glob(@output_dir + "/*").count
+    assert_equal 61, Dir.glob(@output_dir + "/*/**").count
+
+    FileUtils.rm_rf(@output_dir)
+  end
+
+  def test_class
     image = MiniMagick::Image.open @sample_img1
     tiler = MiniDzt::Tiler.new(source: @sample_img1)
 
@@ -58,6 +68,7 @@ class MiniDztTest < Minitest::Test
     )
     assert_equal 14, Dir.glob(@output_dir + "/*").count
     assert_equal 61, Dir.glob(@output_dir + "/*/**").count
+
     FileUtils.rm_rf(@output_dir)
   end
 end
