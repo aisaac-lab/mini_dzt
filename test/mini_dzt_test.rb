@@ -1,11 +1,12 @@
 require 'test_helper'
 
 class MiniDztTest < Minitest::Test
-  def test_that_it_has_a_version_number
-    refute_nil ::MiniDzt::VERSION
+  def setup
+    @fixtures_dir = File.expand_path('../fixtures', __FILE__)
   end
 
-  def test_it_does_something_useful
-    assert false
+  def test_main
+    tiler = MiniDzt::Tiler.new(source: File.join(@fixtures_dir, "img1.jpg"))
+    tiler.slice!
   end
 end
