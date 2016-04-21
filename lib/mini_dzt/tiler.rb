@@ -3,10 +3,10 @@ require 'mini_magick'
 module MiniDzt
   class Tiler
     # Defaults
-    DEFAULT_TILE_SIZE = 512
-    DEFAULT_TILE_OVERLAP = 0
-    DEFAULT_QUALITY = 75
-    DEFAULT_TILE_FORMAT = 'jpg'
+    DEFAULT_TILE_SIZE      = 512
+    DEFAULT_TILE_OVERLAP   = 0
+    DEFAULT_QUALITY        = 75
+    DEFAULT_TILE_FORMAT    = 'jpg'
     DEFAULT_OVERWRITE_FLAG = false
 
     # Generates the DZI-formatted tiles and sets necessary metadata on this object.
@@ -22,10 +22,10 @@ module MiniDzt
       fail 'Missing options[:source].' unless options[:source]
 
       @tile_source  = MiniMagick::Image.open(options[:source])
-      @tile_size    = options[:size] || DEFAULT_TILE_SIZE
-      @tile_overlap = options[:overlap] || DEFAULT_TILE_OVERLAP
-      @tile_format  = options[:format] || DEFAULT_TILE_FORMAT
-      @tile_quality = options[:quality] || DEFAULT_QUALITY
+      @tile_size    = options[:size]      || DEFAULT_TILE_SIZE
+      @tile_overlap = options[:overlap]   || DEFAULT_TILE_OVERLAP
+      @tile_format  = options[:format]    || DEFAULT_TILE_FORMAT
+      @tile_quality = options[:quality]   || DEFAULT_QUALITY
       @overwrite    = options[:overwrite] || DEFAULT_OVERWRITE_FLAG
 
       @max_tiled_height = @tile_source.height
@@ -40,11 +40,12 @@ module MiniDzt
       orig_height = @tile_source.height
 
       max_level(orig_width, orig_height).downto(0) do |level|
+        puts "Level #{level}..."
         current_level_storage_dir = "#{@tmp_working_dir}/#{level}"
         FileUtils.mkdir_p current_level_storage_dir
 
-        width = @tile_source.height
-        height = @tile_source.width
+        width = @tile_source.width
+        height = @tile_source.height
 
         manuscripts = get_manuscripts(width, height, current_level_storage_dir)
 
@@ -54,41 +55,35 @@ module MiniDzt
 
         @tile_source.resize("50%")
       end
-
       FileUtils.mv @tmp_working_dir, output_dir
     end
 
     private
-      def get_manuscripts(width, height, current_level_storage_dir)
-        manuscripts = []
-        x = 0
-        col_count = 0
-        while x < width
-          y = 0
-          row_count = 0
-          while y < height
-            tile_width, tile_height = tile_dimensions(x, y, @tile_size, @tile_overlap)
-            manuscripts << [
-              File.join(current_level_storage_dir, "#{col_count}_#{row_count}.#{@tile_format}"),
-              "#{tile_width}x#{tile_height}+#{y}+#{x}"
-            ]
-            y += (tile_height - (2 * @tile_overlap))
-            row_count += 1
-          end
-          x += (tile_width - (2 * @tile_overlap))
-          col_count += 1
-        end
-        manuscripts
+      def tile_counts(length)
+        return 1 if length <= @tile_size
+        (length / @tile_size.to_f).ceil
       end
 
-      def tile_dimensions(x, y, tile_size, overlap)
-        overlapping_tile_size = tile_size + (2 * overlap)
-        border_tile_size      = tile_size + overlap
+      def get_manuscripts(width, height, current_level_storage_dir)
+        manuscripts = []
 
-        tile_width  = (x > 0) ? overlapping_tile_size : border_tile_size
-        tile_height = (y > 0) ? overlapping_tile_size : border_tile_size
+        overlapping_tile_size = @tile_size + @tile_overlap
+        col_counts = tile_counts(width)
+        row_counts = tile_counts(height)
+        x, y = [0, 0]
 
-        [tile_width, tile_height]
+        row_counts.times do |row_count|
+          col_counts.times do |col_count|
+            manuscripts << [
+              File.join(current_level_storage_dir, "#{col_count}_#{row_count}.#{@tile_format}"),
+              "#{overlapping_tile_size}x#{overlapping_tile_size}+#{x}+#{y}"
+            ]
+            x += @tile_size
+          end
+          x = 0
+          y += @tile_size
+        end
+        manuscripts
       end
 
       def max_level(width, height)
@@ -96,7 +91,9 @@ module MiniDzt
       end
 
       def crope_image(image, dest_path, geometry_arg, quality = 75)
-        `convert -crop #{geometry_arg} #{image.path} #{dest_path}`
+        puts geometry_arg
+        cmd = "convert -crop #{geometry_arg} #{image.path} #{dest_path}"
+        system(cmd)
       end
   end
 end
